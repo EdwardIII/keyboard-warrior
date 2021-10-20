@@ -11,7 +11,8 @@
 (local state {:game-status :in-game
               :lettersseen 0
               :cursor-pos 1
-              :started 0})
+              :started 0
+              :last-wpm 0})
 
 (local letter-width 10)
 
@@ -69,11 +70,23 @@
   "Is it time to start measuring WPM? Returns false if already started."
   (and (> cursor-pos 1) (= started 0)))
 
+(fn reset []
+  "Resets all state except last-wpm"
+  (set state.lettersseen 0)
+  (set state.cursor-pos 1)
+  (set state.started 0)
+  (set state.game-status :in-game))
+
 (fn love.update []
   (print (fennel.view {:state state :now (now)}))
   (when (start-measuring-wpm state.cursor-pos state.started) (set state.started (love.timer.getTime)))
   (when (= (- state.cursor-pos 1) (length exercise))
-    (set state.game-status :game-over))
+    (when (= state.last-wpm 0) (set state.last-wpm (wpm state.started exercise state.cursor-pos)))
+    (set state.game-status :game-over)
+    (when (pressed? "y")
+            (reset))
+    (when (pressed? "n") (love.event.quit)))
+  
   (when (= state.game-status :in-game)
     (when (pressed? (. exercise state.cursor-pos))
       (set state.cursor-pos (+ state.cursor-pos 1)))))
@@ -86,14 +99,13 @@
 (fn next-position [seen width-px]
   "Gives you the position of the next letter based on how many have been seen so far.
 
-  Note: use font:getWidth letter to calculate the width of a letter
-  (local font (love.graphics.getFont))
-  (print (font:getWidth \"w\"))"
-
+  Note: If hard coding is no good, use font:getWidth letter
+  to calculate the width of a letter:
+    (local font (love.graphics.getFont))
+    (print (font:getWidth \"w\"))"
   (* seen width-px))
 
 (fn draw-prompt [state exercise]
-                                        ; TODO: Only start on first keypress
   (love.graphics.print (format-wpm state.started exercise state.cursor-pos) 10 500)
   (set state.lettersseen 0)
   (each [index letter (ipairs exercise)]
@@ -101,7 +113,8 @@
     (set state.lettersseen (+ state.lettersseen 1))))
 
 (fn draw-game-over []
-  (love.graphics.print "Good game, play again? y/n"))
+  "y/n key presses are listened for in love.update"
+  (love.graphics.print (string.format "Your score: %s wpm. Play again? y/n" state.last-wpm)))
 
 (fn love.draw []
   (match state.game-status
