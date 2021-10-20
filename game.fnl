@@ -53,20 +53,25 @@
   "Number of words completed if you got to this position"
   (num-words (lume.slice exercise 1 position)))
   
-(fn wpm [start text letters-seen]
-  (/ (words-completed text letters-seen) (minutes (duration start (now)))))
+(fn wpm [start text cursor-pos]
+  (/ (words-completed text cursor-pos) (minutes (duration start (now)))))
 
-(fn format-wpm [start text letters-seen]
-  (string.format "%s wpm" (wpm start text letters-seen)))
-
+(fn format-wpm [start text cursor-pos]
+  (if (> cursor-pos 1)
+      (string.format "%s wpm" (wpm start text cursor-pos))
+      (string.format "Press key to start")))
 
 (local green [0 1 0 1])
 (local blue [0 0 1 1])
 (local white [1 1 1 1])
 
+(fn start-measuring-wpm [cursor-pos started]
+  "Is it time to start measuring WPM? Returns false if already started."
+  (and (> cursor-pos 1) (= started 0)))
+
 (fn love.update []
   (print (fennel.view {:state state :now (now)}))
-  (when (= state.started 0) (set state.started (love.timer.getTime)))
+  (when (start-measuring-wpm state.cursor-pos state.started) (set state.started (love.timer.getTime)))
   (when (= (- state.cursor-pos 1) (length exercise))
     (set state.game-status :game-over))
   (when (= state.game-status :in-game)
@@ -75,9 +80,9 @@
 
 (fn pick-color [cursor-pos index]
   (if (> index cursor-pos)
-    green
-    white))
-  
+      green
+      white))
+
 (fn next-position [seen width-px]
   "Gives you the position of the next letter based on how many have been seen so far.
 
@@ -88,7 +93,7 @@
   (* seen width-px))
 
 (fn draw-prompt [state exercise]
-  ; TODO: Only start on first keypress
+                                        ; TODO: Only start on first keypress
   (love.graphics.print (format-wpm state.started exercise state.cursor-pos) 10 500)
   (set state.lettersseen 0)
   (each [index letter (ipairs exercise)]
@@ -98,8 +103,13 @@
 (fn draw-game-over []
   (love.graphics.print "Good game, play again? y/n"))
 
-
 (fn love.draw []
   (match state.game-status
     :in-game (draw-prompt state exercise)
     :game-over (draw-game-over)))
+
+; TODO: Update most files from skeleton to get restarting after errors: https://gitlab.com/alexjgriffith/min-love2d-fennel/-/blob/master/wrap.fnl  
+; TODO: <ane> you can also add a directory local variable so that whenever you open a
+;      .fnl in that game directory it starts with "love ."               [19:28]
+;  <ane> and you don't have to customize: <ane> you can do that with M-x add-dir-local-variable <ret> fennel-mode <ret>
+;      fennel-program <ret> love . <ret>
