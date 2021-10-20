@@ -1,8 +1,8 @@
 (local repl (require "lib.stdio"))
-(local lume (require "lib.lume"))
-
 (fn love.load []
   (repl.start))
+
+(local lume (require "lib.lume"))
 
 ; game statuses
 :game-over
@@ -65,6 +65,7 @@
 (local white [1 1 1 1])
 
 (fn love.update []
+  (print (fennel.view {:state state :now (now)}))
   (when (= state.started 0) (set state.started (love.timer.getTime)))
   (when (= (- state.cursorpos 1) (length exercise))
     (set state.game-status :game-over))
@@ -88,9 +89,7 @@
 
 (fn draw-prompt [state exercise]
   ; TODO: Only start on first keypress
-
-  ;(love.graphics.print (format-wpm state.started exercise) 10 500)
-  (love.graphics.print (format-wpm state.started exercise state.lettersseen) 10 500)
+  (love.graphics.print (format-wpm state.started exercise state.cursorpos) 10 500)
   (set state.lettersseen 0)
   (each [index letter (ipairs exercise)]
     (love.graphics.print [(pick-color state.cursorpos index) letter] (next-position state.lettersseen letter-width) 10)
