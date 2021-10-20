@@ -10,7 +10,7 @@
 
 (local state {:game-status :in-game
               :lettersseen 0
-              :cursorpos 1
+              :cursor-pos 1
               :started 0})
 
 (local letter-width 10)
@@ -67,11 +67,11 @@
 (fn love.update []
   (print (fennel.view {:state state :now (now)}))
   (when (= state.started 0) (set state.started (love.timer.getTime)))
-  (when (= (- state.cursorpos 1) (length exercise))
+  (when (= (- state.cursor-pos 1) (length exercise))
     (set state.game-status :game-over))
   (when (= state.game-status :in-game)
-    (when (pressed? (. exercise state.cursorpos))
-      (set state.cursorpos (+ state.cursorpos 1)))))
+    (when (pressed? (. exercise state.cursor-pos))
+      (set state.cursor-pos (+ state.cursor-pos 1)))))
 
 (fn pick-color [cursor-pos index]
   (if (> index cursor-pos)
@@ -89,10 +89,10 @@
 
 (fn draw-prompt [state exercise]
   ; TODO: Only start on first keypress
-  (love.graphics.print (format-wpm state.started exercise state.cursorpos) 10 500)
+  (love.graphics.print (format-wpm state.started exercise state.cursor-pos) 10 500)
   (set state.lettersseen 0)
   (each [index letter (ipairs exercise)]
-    (love.graphics.print [(pick-color state.cursorpos index) letter] (next-position state.lettersseen letter-width) 10)
+    (love.graphics.print [(pick-color state.cursor-pos index) letter] (next-position state.lettersseen letter-width) 10)
     (set state.lettersseen (+ state.lettersseen 1))))
 
 (fn draw-game-over []
