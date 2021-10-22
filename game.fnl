@@ -17,7 +17,7 @@
 (local letter-width 10)
 
 (fn lookup [letter]
-  (match letter
+  (match Letter
     " " "space"
     _ letter))
 
@@ -121,7 +121,6 @@
     :in-game (draw-prompt state exercise)
     :game-over (draw-game-over)))
 
-; TODO: Update most files from skeleton to get restarting after errors: https://gitlab.com/alexjgriffith/min-love2d-fennel/-/blob/master/wrap.fnl  
 ; TODO: <ane> you can also add a directory local variable so that whenever you open a
 ;      .fnl in that game directory it starts with "love ."               [19:28]
 ;  <ane> and you don't have to customize: <ane> you can do that with M-x add-dir-local-variable <ret> fennel-mode <ret>

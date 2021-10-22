@@ -1,21 +1,24 @@
 (require "love.event")
-(local {: view} (require :lib.fennel))
 
 ;; This module exists in order to expose stdio over a channel so that it
 ;; can be used in a non-blocking way from another thread.
 
-(local (event channel) ...)
+(fn prompt [cont?]
+  (io.write (if cont? ".." ">> ")) (io.flush) (.. (io.read) "\n"))
 
-(fn prompt [next-line?]
-  (io.write (if next-line? ".." ">> ")) (io.flush) (.. (io.read) "\n"))
+;; This module is loaded twice: initially in the main thread where ... is nil,
+;; and then again in a separate thread where ... contains the channel used to
+;; communicate with the main thread.
 
-(when channel
-  ((fn looper []
-     (match (channel:demand)
-         [:out vals] (do (io.write (table.concat vals "\t"))
-                         (io.write "\n"))
-         [:read stack-size] (love.event.push event (prompt (< 0 stack-size))))
-     (looper))))
+(fn looper [event channel]
+  (match (channel:demand)
+    [:write vals] (do (io.write (table.concat vals "\t"))
+                      (io.write "\n"))
+    [:read cont?] (love.event.push event (prompt cont?)))
+  (looper event channel))
+
+(match ...
+  (event channel) (looper event channel))
 
 {:start (fn start-repl []
           (let [code (love.filesystem.read "lib/stdio.fnl")
@@ -26,18 +29,17 @@
                 thread (love.thread.newThread luac)
                 io-channel (love.thread.newChannel)
                 coro (coroutine.create fennel.repl)
-                out (fn [...]
-                      (io-channel:push [:out ...]))
                 options {:readChunk (fn [{: stack-size}]
-                                      (io-channel:push [:read stack-size])
+                                      (io-channel:push [:read (< 0 stack-size)])
                                       (coroutine.yield))
-                         :onValues out
+                         :onValues (fn [vals]
+                                     (io-channel:push [:write vals]))
                          :onError (fn [errtype err]
-                                    (io-channel:push [:out [err]]))
+                                    (io-channel:push [:write [err]]))
                          :moduleName "lib.fennel"}]
             ;; this thread will send "eval" events for us to consume:
             (coroutine.resume coro options)
-            (: thread :start "eval" io-channel)
+            (thread:start "eval" io-channel)
             (set love.handlers.eval
                  (fn [input]
-                   (coroutine.resume coro  input)))))}
+                   (coroutine.resume coro input)))))}
