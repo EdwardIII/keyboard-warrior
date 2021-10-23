@@ -1,13 +1,17 @@
 (local lum (require "lib.lume"))
 
-(local default-state {:num-letters-printed 0
+
+(fn default-state []
+  {:num-letters-printed 0
                       :cursor-pos 1
                       :started 0
                       })
 
 ;; State for the current game mode
-(var state (or _G.state default-state))
+(var state (or _G.state (default-state)))
 (set _G.state state)
+
+(pp state)
 
 (local letter-width 10)
 
@@ -18,8 +22,8 @@
 (fn reset! [context]
   "Resets the state for this mode and also the context"
   (print "resetting...")
-  (set state default-state)
-  (set _G.state default-state)
+  (set state (default-state))
+  (set _G.state (default-state))
   (set context.last-wpm 0))
 
 (fn lookup [letter]
@@ -99,17 +103,17 @@
 (fn start-new-game? [last-wpm cursor-pos]
   (and (> last-wpm 0) (> cursor-pos 1)))
 
+(fn finished-exercise? [cursor-pos exercise]
+  (= (- state.cursor-pos 1) (length exercise)))
+
 {:draw (fn draw [message]
          (draw-prompt state exercise))
  :update (fn update [dt set-mode context]
-           (print (fennel.view {:state state :context context}))
            ;; Player has come back from game-over screen, reset everything
            (when (start-new-game? context.last-wpm state.cursor-pos) (reset! context))
-           (pp state.cursor-pos)
-           (pp (length exercise))
-           (pp "------")
+           (print (fennel.view {:state state :context context}))
            (when (start-measuring-wpm state.cursor-pos state.started) (set state.started (love.timer.getTime)))
-           (when (= (- state.cursor-pos 1) (length exercise))
+           (when (finished-exercise? state.cursor-pos exercise)
              (set context.last-wpm (wpm state.started exercise state.cursor-pos))
              (set-mode :mode-over)))
 
