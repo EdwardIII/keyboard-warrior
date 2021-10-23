@@ -11,8 +11,6 @@
 (var state (or _G.state (default-state)))
 (set _G.state state)
 
-(pp state)
-
 (local letter-width 10)
 
 (local green [0 1 0 1]) ; yet to type this letter
@@ -21,7 +19,6 @@
 
 (fn reset! [context]
   "Resets the state for this mode and also the context"
-  (print "resetting...")
   (set state (default-state))
   (set _G.state (default-state))
   (set context.last-wpm 0))
@@ -65,13 +62,14 @@
   (num-words (lum.slice exercise 1 position)))
   
 (fn wpm [start text cursor-pos]
-  (/ (words-completed text cursor-pos) (minutes (duration start (now)))))
+  "Get the average wpm based on how long they've been typing and where they are
+  in the exercise"
+  (math.ceil (/ (words-completed text cursor-pos) (minutes (duration start (now))))))
 
 (fn format-wpm [start text cursor-pos]
   (if (> cursor-pos 1)
-      (string.format "%s wpm" (wpm start text cursor-pos))
+      (string.format "%s wpm"  (wpm start text cursor-pos))
       (string.format "Press key to start")))
-
 
 (fn start-measuring-wpm [cursor-pos started]
   "Is it time to start measuring WPM? Returns false if already started."
@@ -111,7 +109,6 @@
  :update (fn update [dt set-mode context]
            ;; Player has come back from game-over screen, reset everything
            (when (start-new-game? context.last-wpm state.cursor-pos) (reset! context))
-           (print (fennel.view {:state state :context context}))
            (when (start-measuring-wpm state.cursor-pos state.started) (set state.started (love.timer.getTime)))
            (when (finished-exercise? state.cursor-pos exercise)
              (set context.last-wpm (wpm state.started exercise state.cursor-pos))
